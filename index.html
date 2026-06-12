@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle de PIX - Caixa</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- ===== CABEÇALHO ===== -->
+    <header class="app-header">
+      <div>
+        <h1>💸 Controle de PIX</h1>
+        <p class="subtitle" id="dataAtual">--/--/----</p>
+      </div>
+      <button id="themeToggle" class="btn-icon" title="Alternar tema">🌙</button>
+    </header>
+
+    <!-- ===== RESUMO DO DIA ===== -->
+    <section class="resumo-dia">
+      <div class="card-resumo card-conta">
+        <span class="label">Total Contas</span>
+        <span class="valor" id="totalContas">R$ 0,00</span>
+      </div>
+      <div class="card-resumo card-venda">
+        <span class="label">Total Vendas</span>
+        <span class="valor" id="totalVendas">R$ 0,00</span>
+      </div>
+      <div class="card-resumo card-geral">
+        <span class="label">Total Geral</span>
+        <span class="valor" id="totalGeral">R$ 0,00</span>
+      </div>
+    </section>
+
+    <!-- ===== FORMULÁRIO DE LANÇAMENTO ===== -->
+    <section class="form-card">
+      <h2>Novo Lançamento</h2>
+
+      <!-- Seletor de tipo: PIX Conta ou PIX Venda -->
+      <div class="tipo-selector">
+        <button type="button" class="btn-tipo ativo" data-tipo="conta" id="btnTipoConta">
+          🧾 PIX Conta
+        </button>
+        <button type="button" class="btn-tipo" data-tipo="venda" id="btnTipoVenda">
+          🛒 PIX Venda
+        </button>
+      </div>
+
+      <form id="formPix">
+        <div class="form-group">
+          <label for="nomeCliente">Nome do Cliente</label>
+          <input
+            type="text"
+            id="nomeCliente"
+            placeholder="Ex: João da Silva"
+            autocomplete="off"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="valorPix">Valor (R$)</label>
+          <input
+            type="number"
+            id="valorPix"
+            placeholder="0,00"
+            step="0.01"
+            min="0"
+            inputmode="decimal"
+            required
+          />
+        </div>
+
+        <button type="submit" class="btn-primario">
+          ✅ Registrar PIX
+        </button>
+      </form>
+    </section>
+
+    <!-- ===== LISTA DO DIA ATUAL ===== -->
+    <section class="lista-card">
+      <h2>Lançamentos de Hoje</h2>
+      <ul id="listaHoje" class="lista-pix">
+        <li class="lista-vazia">Nenhum lançamento ainda hoje.</li>
+      </ul>
+    </section>
+
+    <!-- ===== HISTÓRICO DE DIAS ANTERIORES ===== -->
+    <section class="historico-card">
+      <h2>📅 Histórico de Dias</h2>
+      <div id="listaDias" class="lista-dias">
+        <p class="lista-vazia">Nenhum histórico salvo ainda.</p>
+      </div>
+
+      <!-- Detalhes do dia selecionado -->
+      <div id="detalheDia" class="detalhe-dia hidden">
+        <div class="detalhe-header">
+          <h3 id="detalheDiaTitulo">Detalhes do dia</h3>
+          <button id="fecharDetalhe" class="btn-icon" title="Fechar">✖</button>
+        </div>
+
+        <div class="resumo-dia resumo-dia-historico">
+          <div class="card-resumo card-conta">
+            <span class="label">Total Contas</span>
+            <span class="valor" id="detalheTotalContas">R$ 0,00</span>
+          </div>
+          <div class="card-resumo card-venda">
+            <span class="label">Total Vendas</span>
+            <span class="valor" id="detalheTotalVendas">R$ 0,00</span>
+          </div>
+          <div class="card-resumo card-geral">
+            <span class="label">Total Geral</span>
+            <span class="valor" id="detalheTotalGeral">R$ 0,00</span>
+          </div>
+        </div>
+
+        <ul id="detalheLista" class="lista-pix"></ul>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <p>Dados salvos localmente no navegador (LocalStorage). Nenhuma informação é enviada para a internet.</p>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

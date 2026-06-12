@@ -1,0 +1,467 @@
+/* =====================================================
+   VARIÁVEIS DE TEMA (LIGHT MODE - padrão)
+   ===================================================== */
+:root {
+  --bg-color: #f3f4f6;
+  --bg-card: #ffffff;
+  --text-color: #1f2937;
+  --text-muted: #6b7280;
+  --border-color: #e5e7eb;
+
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+
+  --color-conta: #f59e0b;     /* PIX Conta - laranja */
+  --color-conta-bg: #fef3c7;
+
+  --color-venda: #10b981;     /* PIX Venda - verde */
+  --color-venda-bg: #d1fae5;
+
+  --color-geral: #2563eb;     /* Total geral - azul */
+  --color-geral-bg: #dbeafe;
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --radius: 12px;
+}
+
+/* =====================================================
+   DARK MODE - sobrescreve as variáveis quando a classe
+   "dark" estiver presente no <body>
+   ===================================================== */
+body.dark {
+  --bg-color: #0f172a;
+  --bg-card: #1e293b;
+  --text-color: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+
+  --primary-color: #3b82f6;
+  --primary-hover: #60a5fa;
+
+  --color-conta: #fbbf24;
+  --color-conta-bg: #3f2d0f;
+
+  --color-venda: #34d399;
+  --color-venda-bg: #0f3a2a;
+
+  --color-geral: #60a5fa;
+  --color-geral-bg: #102a4c;
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* =====================================================
+   RESET BÁSICO
+   ===================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-bottom: 48px;
+}
+
+/* =====================================================
+   CABEÇALHO
+   ===================================================== */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 4px 0;
+}
+
+.app-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  text-transform: capitalize;
+}
+
+.btn-icon {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, background-color 0.2s ease;
+}
+
+.btn-icon:hover {
+  transform: scale(1.05);
+}
+
+.btn-icon:active {
+  transform: scale(0.95);
+}
+
+/* =====================================================
+   RESUMO DO DIA (cards de totais)
+   ===================================================== */
+.resumo-dia {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.card-resumo {
+  background-color: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 14px 10px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-resumo .label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.card-resumo .valor {
+  font-size: 1.1rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.card-conta .valor { color: var(--color-conta); }
+.card-venda .valor { color: var(--color-venda); }
+.card-geral .valor { color: var(--color-geral); }
+
+/* =====================================================
+   CARDS GERAIS (form, lista, histórico)
+   ===================================================== */
+.form-card,
+.lista-card,
+.historico-card {
+  background-color: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+}
+
+.form-card h2,
+.lista-card h2,
+.historico-card h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+/* =====================================================
+   SELETOR DE TIPO (PIX Conta / PIX Venda)
+   ===================================================== */
+.tipo-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.btn-tipo {
+  padding: 12px;
+  border-radius: 10px;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-tipo:hover {
+  border-color: var(--primary-color);
+}
+
+/* Botão "PIX Conta" ativo */
+.btn-tipo.ativo[data-tipo="conta"] {
+  background-color: var(--color-conta-bg);
+  border-color: var(--color-conta);
+  color: var(--color-conta);
+}
+
+/* Botão "PIX Venda" ativo */
+.btn-tipo.ativo[data-tipo="venda"] {
+  background-color: var(--color-venda-bg);
+  border-color: var(--color-venda);
+  color: var(--color-venda);
+}
+
+/* =====================================================
+   FORMULÁRIO
+   ===================================================== */
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 1rem;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: border-color 0.15s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.btn-primario {
+  width: 100%;
+  padding: 14px;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-primario:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-primario:active {
+  transform: scale(0.99);
+}
+
+/* =====================================================
+   LISTA DE PIX (hoje e histórico)
+   ===================================================== */
+.lista-pix {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lista-pix li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.item-nome {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.item-direita {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.item-valor {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.item-valor.conta { color: var(--color-conta); }
+.item-valor.venda { color: var(--color-venda); }
+
+.tag-tipo {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tag-tipo.conta {
+  background-color: var(--color-conta-bg);
+  color: var(--color-conta);
+}
+
+.tag-tipo.venda {
+  background-color: var(--color-venda-bg);
+  color: var(--color-venda);
+}
+
+.btn-excluir {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.btn-excluir:hover {
+  color: #ef4444;
+}
+
+.lista-vazia {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 16px 0;
+}
+
+/* =====================================================
+   HISTÓRICO DE DIAS
+   ===================================================== */
+.lista-dias {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dia-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.dia-item:hover {
+  border-color: var(--primary-color);
+}
+
+.dia-item .dia-data {
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+
+.dia-item .dia-total {
+  font-weight: 700;
+  color: var(--color-geral);
+  font-size: 0.95rem;
+}
+
+/* Detalhes do dia selecionado */
+.detalhe-dia {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.detalhe-dia.hidden {
+  display: none;
+}
+
+.detalhe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.detalhe-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.resumo-dia-historico {
+  margin-bottom: 14px;
+}
+
+/* =====================================================
+   RODAPÉ
+   ===================================================== */
+.app-footer {
+  text-align: center;
+  margin-top: 8px;
+  padding: 12px;
+}
+
+.app-footer p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* =====================================================
+   RESPONSIVIDADE
+   ===================================================== */
+@media (max-width: 400px) {
+  .resumo-dia {
+    grid-template-columns: 1fr;
+  }
+
+  .card-resumo {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
