@@ -440,6 +440,11 @@ function init() {
   btnTipoVenda.addEventListener("click", () => selecionarTipo("venda"));
   selecionarTipo("conta"); 
 
+const btnImprimir = document.getElementById("btnImprimirHoje");
+  if(btnImprimir) {
+    btnImprimir.addEventListener("click", imprimirRelatorioDia);
+  }
+
   formPix.addEventListener("submit", tratarSubmitFormulario);
   fecharDetalheBtn.addEventListener("click", fecharDetalheDia);
 
@@ -449,3 +454,67 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+// =========================================================
+// IMPRESSÃO DE RELATÓRIO
+// =========================================================
+
+function imprimirRelatorioDia() {
+  const dados = carregarDados();
+  const registros = dados[hojeKey]?.registros || [];
+
+  if (registros.length === 0) {
+    alert("Não há registros de PIX para imprimir hoje.");
+    return;
+  }
+
+  const { totalContas, totalVendas, totalGeral } = calcularTotais(registros);
+  const areaImpressao = document.getElementById("areaImpressao");
+
+  // Monta o layout do cupomzinho
+  let html = `
+    <div class="cupom-header">
+      <div class="cupom-titulo">BAZAR ANA PAULA</div>
+      <div>Tradição desde 1988</div>
+      <div class="cupom-divisor"></div>
+      <div>RELATÓRIO PIX DO CAIXA</div>
+      <div>Data: ${formatarDataExtenso(hojeKey)}</div>
+    </div>
+    <div class="cupom-divisor"></div>
+  `;
+
+  // Lista os nomes e valores (colocando um (C) ou (V) para identificar)
+  registros.forEach(r => {
+    const sigla = r.tipo === 'conta' ? '(C)' : '(V)';
+    html += `
+      <div class="cupom-linha">
+        <span>${escapeHTML(r.nome)} ${sigla}</span>
+        <span>${formatarMoeda(r.valor)}</span>
+      </div>
+    `;
+  });
+
+  // Totais no final
+  html += `
+    <div class="cupom-divisor"></div>
+    <div class="cupom-linha">
+      <span>Total de Vendas:</span>
+      <span>${formatarMoeda(totalVendas)}</span>
+    </div>
+    <div class="cupom-linha">
+      <span>Total de Contas:</span>
+      <span>${formatarMoeda(totalContas)}</span>
+    </div>
+    <div class="cupom-divisor"></div>
+    <div class="cupom-linha" style="font-weight: bold; font-size: 16px;">
+      <span>TOTAL GERAL:</span>
+      <span>${formatarMoeda(totalGeral)}</span>
+    </div>
+    <div class="cupom-divisor"></div>
+    <div style="text-align: center; margin-top: 15px;">Fechamento de Caixa</div>
+    <div style="text-align: center; font-size: 12px; margin-top: 5px;">---</div>
+  `;
+
+  // Injeta no HTML e chama a impressão nativa do navegador
+  areaImpressao.innerHTML = html;
+  window.print();
+}
