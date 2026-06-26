@@ -480,3 +480,48 @@ body {
 .btn-editar:hover {
   color: var(--color-conta);
 }
+/* =====================================================
+   ESTILOS DE IMPRESSÃO (ELGIN i9 - Bobina 80mm)
+   ===================================================== */
+.area-impressao {
+  display: none; /* Fica invisível na tela normal */
+}
+
+@media print {
+  /* Esconde o site inteiro na hora de imprimir */
+  .container {
+    display: none !important;
+  }
+  
+  /* Mostra apenas a área do cupom */
+  .area-impressao {
+    display: block !important;
+    width: 80mm; /* Largura padrão da Elgin i9 */
+    padding: 0;
+    margin: 0;
+    font-family: 'Courier New', Courier, monospace; /* Fonte perfeita para térmica */
+    font-size: 14px;
+    color: #000;
+  }
+
+  .cupom-header {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .cupom-titulo {
+    font-weight: bold;
+    font-size: 16px;
+  }
+
+  .cupom-linha {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .cupom-divisor {
+    border-top: 1px dashed #000;
+    margin: 8px 0;
+  }
+}
