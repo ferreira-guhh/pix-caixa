@@ -480,28 +480,42 @@ body {
 .btn-editar:hover {
   color: var(--color-conta);
 }
+
 /* =====================================================
    ESTILOS DE IMPRESSÃO (ELGIN i9 - Bobina 80mm)
    ===================================================== */
 .area-impressao {
-  display: none; /* Fica invisível na tela normal */
+  display: none;
 }
 
 @media print {
-  /* Esconde o site inteiro na hora de imprimir */
+  /* 1. Arranca o cabeçalho/rodapé do navegador e solta o limite da folha */
+  @page {
+    margin: 0; 
+  }
+
+  /* 2. Zera as alturas para o papel acompanhar o tamanho do texto */
+  html, body {
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #fff;
+  }
+
   .container {
     display: none !important;
   }
   
-  /* Mostra apenas a área do cupom */
   .area-impressao {
     display: block !important;
-    width: 80mm; /* Largura padrão da Elgin i9 */
-    padding: 0;
+    width: 78mm; /* Um pouco menos de 80mm para dar uma margem de segurança */
+    padding: 4mm; /* Dá um respiro pra guilhotina não cortar o começo */
     margin: 0;
-    font-family: 'Courier New', Courier, monospace; /* Fonte perfeita para térmica */
-    font-size: 14px;
-    color: #000;
+    
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 15px; /* Letra um pouco maior */
+    color: #000 !important; /* Força o preto puro (térmica não lê cinza) */
+    font-weight: 900 !important; /* Força o negrito máximo */
   }
 
   .cupom-header {
@@ -510,18 +524,19 @@ body {
   }
 
   .cupom-titulo {
-    font-weight: bold;
-    font-size: 16px;
+    font-weight: 900;
+    font-size: 18px;
   }
 
   .cupom-linha {
     display: flex;
     justify-content: space-between;
     margin-bottom: 4px;
+    font-weight: 900 !important; /* Garante os itens em negrito */
   }
 
   .cupom-divisor {
-    border-top: 1px dashed #000;
+    border-top: 2px dashed #000; /* Linha tracejada mais grossa e preta */
     margin: 8px 0;
   }
 }
