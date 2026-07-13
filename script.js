@@ -1,20 +1,27 @@
 /* =========================================================
-   SISTEMA DE CONTROLE DE PIX PARA CAIXA DE LOJA
-   Armazenamento: 100% LocalStorage (sem backend)
-
-   Estrutura de dados salva em "pixData":
-   {
-     "2026-06-12": {
-       registros: [
-         { id, nome, valor, tipo: "conta"|"venda", hora }
-       ]
-     },
-     ...
-   }
+   SISTEMA DE CONTROLE DE PIX - BAZAR ANA PAULA (Desde 1988)
+   Armazenamento: Firebase Firestore
    ========================================================= */
 
-const STORAGE_KEY_DADOS = "pixData";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Configuração do Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCIJBN0Ch4p3LdrLjZ308QVnZFww_mqZjs",
+  authDomain: "caixa-pix.firebaseapp.com",
+  projectId: "caixa-pix",
+  storageBucket: "caixa-pix.firebasestorage.app",
+  messagingSenderId: "111399263107",
+  appId: "1:111399263107:web:20eec030f6d2f43113f4b6"
+};
+
+// Inicializa o Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 const STORAGE_KEY_TEMA = "pixTheme";
+const COLECAO = "historico_dias";
 
 // ---------------------------------------------------------
 // Referências dos elementos do DOM
@@ -27,13 +34,13 @@ const btnTipoVenda = document.getElementById("btnTipoVenda");
 const formPix = document.getElementById("formPix");
 const nomeClienteInput = document.getElementById("nomeCliente");
 const valorPixInput = document.getElementById("valorPix");
+const btnSubmit = formPix.querySelector("button[type='submit']");
 
 const totalContasEl = document.getElementById("totalContas");
 const totalVendasEl = document.getElementById("totalVendas");
 const totalGeralEl = document.getElementById("totalGeral");
 
 const listaHojeEl = document.getElementById("listaHoje");
-const listaDiasEl = document.getElementById("listaDias");
 
 const detalheDiaEl = document.getElementById("detalheDia");
 const detalheDiaTituloEl = document.getElementById("detalheDiaTitulo");
@@ -43,20 +50,25 @@ const detalheTotalVendasEl = document.getElementById("detalheTotalVendas");
 const detalheTotalGeralEl = document.getElementById("detalheTotalGeral");
 const fecharDetalheBtn = document.getElementById("fecharDetalhe");
 
+const mesAnoAtualEl = document.getElementById("mesAnoAtual");
+const calendarioGridEl = document.getElementById("calendarioGrid");
+const btnMesAnterior = document.getElementById("btnMesAnterior");
+const btnMesProximo = document.getElementById("btnMesProximo");
+
 // ---------------------------------------------------------
 // Estado em memória
 // ---------------------------------------------------------
-let tipoSelecionado = "conta"; // "conta" ou "venda"
+let tipoSelecionado = "conta"; 
 const hojeKey = obterChaveData(new Date());
+let dataCalendario = new Date();
+
+let idEmEdicao = null;
+let dataEmEdicao = null;
 
 // =========================================================
 // FUNÇÕES UTILITÁRIAS
 // =========================================================
 
-/**
- * Retorna a chave de data no formato "YYYY-MM-DD"
- * usada para agrupar os registros no LocalStorage.
- */
 function obterChaveData(date) {
   const ano = date.getFullYear();
   const mes = String(date.getMonth() + 1).padStart(2, "0");
@@ -64,35 +76,18 @@ function obterChaveData(date) {
   return `${ano}-${mes}-${dia}`;
 }
 
-/**
- * Formata uma chave "YYYY-MM-DD" para exibição
- * (ex: "quinta-feira, 12 de junho de 2026")
- */
 function formatarDataExtenso(chaveData) {
   const [ano, mes, dia] = chaveData.split("-").map(Number);
-  // mes - 1 porque o construtor Date usa mês 0-indexado
   const data = new Date(ano, mes - 1, dia);
   return data.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
+    weekday: "long", day: "2-digit", month: "long", year: "numeric",
   });
 }
 
-/**
- * Formata um número como moeda brasileira (R$ 0,00)
- */
 function formatarMoeda(valor) {
-  return valor.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-/**
- * Retorna a hora atual no formato HH:MM
- */
 function obterHoraAtual() {
   const agora = new Date();
   const h = String(agora.getHours()).padStart(2, "0");
@@ -100,117 +95,113 @@ function obterHoraAtual() {
   return `${h}:${m}`;
 }
 
-/**
- * Gera um ID simples e único baseado em timestamp
- */
 function gerarId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+function escapeHTML(texto) {
+  const div = document.createElement("div");
+  div.textContent = texto;
+  return div.innerHTML;
+}
+
+function calcularTotais(registros) {
+  let totalContas = 0, totalVendas = 0;
+  registros.forEach((r) => {
+    if (r.tipo === "conta") totalContas += r.valor;
+    else if (r.tipo === "venda") totalVendas += r.valor;
+  });
+  return { totalContas, totalVendas, totalGeral: totalContas + totalVendas };
+}
+
 // =========================================================
-// FUNÇÕES DE ACESSO AO LOCALSTORAGE
+// INTEGRAÇÃO COM O FIREBASE (CRUD)
 // =========================================================
 
-/**
- * Lê todos os dados salvos no LocalStorage.
- * Retorna um objeto vazio se não houver nada salvo.
- */
-function carregarDados() {
+// Busca um dia específico
+async function obterDia(chaveData) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_DADOS);
-    return raw ? JSON.parse(raw) : {};
-  } catch (erro) {
-    console.error("Erro ao ler dados do LocalStorage:", erro);
+    const docSnap = await getDoc(doc(db, COLECAO, chaveData));
+    if (docSnap.exists()) return docSnap.data().registros || [];
+    return [];
+  } catch (error) {
+    console.error("Erro ao buscar o dia:", error);
+    return [];
+  }
+}
+
+// Busca todos os dias (para montar o calendário)
+async function carregarTodosOsDados() {
+  try {
+    const snapshot = await getDocs(collection(db, COLECAO));
+    const dados = {};
+    snapshot.forEach(documento => {
+      dados[documento.id] = documento.data();
+    });
+    return dados;
+  } catch (error) {
+    console.error("Erro ao carregar banco:", error);
     return {};
   }
 }
 
-/**
- * Salva o objeto de dados completo no LocalStorage.
- */
-function salvarDados(dados) {
+async function salvarDia(chaveData, registros) {
   try {
-    localStorage.setItem(STORAGE_KEY_DADOS, JSON.stringify(dados));
-  } catch (erro) {
-    console.error("Erro ao salvar dados no LocalStorage:", erro);
-    alert("Não foi possível salvar os dados. O armazenamento local pode estar cheio ou bloqueado.");
-  }
-}
-
-/**
- * Adiciona um novo registro de PIX no dia atual.
- */
-function adicionarRegistro(nome, valor, tipo) {
-  const dados = carregarDados();
-
-  if (!dados[hojeKey]) {
-    dados[hojeKey] = { registros: [] };
-  }
-
-  dados[hojeKey].registros.push({
-    id: gerarId(),
-    nome: nome,
-    valor: valor,
-    tipo: tipo,
-    hora: obterHoraAtual(),
-  });
-
-  salvarDados(dados);
-}
-
-/**
- * Remove um registro pelo id, dentro de uma data específica.
- */
-function removerRegistro(chaveData, idRegistro) {
-  const dados = carregarDados();
-  if (!dados[chaveData]) return;
-
-  dados[chaveData].registros = dados[chaveData].registros.filter(
-    (r) => r.id !== idRegistro
-  );
-
-  // Se o dia ficou sem registros, remove a chave do dia
-  if (dados[chaveData].registros.length === 0) {
-    delete dados[chaveData];
-  }
-
-  salvarDados(dados);
-}
-
-// =========================================================
-// FUNÇÕES DE CÁLCULO DE TOTAIS
-// =========================================================
-
-/**
- * Calcula os totais (contas, vendas, geral) de uma lista de registros.
- */
-function calcularTotais(registros) {
-  let totalContas = 0;
-  let totalVendas = 0;
-
-  registros.forEach((r) => {
-    if (r.tipo === "conta") {
-      totalContas += r.valor;
-    } else if (r.tipo === "venda") {
-      totalVendas += r.valor;
+    if (registros.length === 0) {
+      await deleteDoc(doc(db, COLECAO, chaveData));
+    } else {
+      await setDoc(doc(db, COLECAO, chaveData), { registros });
     }
-  });
+  } catch (error) {
+    console.error("Erro ao salvar:", error);
+    alert("Erro de conexão ao salvar na nuvem.");
+  }
+}
 
-  return {
-    totalContas,
-    totalVendas,
-    totalGeral: totalContas + totalVendas,
-  };
+async function adicionarRegistro(nome, valor, tipo) {
+  const registros = await obterDia(hojeKey);
+  registros.push({ id: gerarId(), nome, valor, tipo, hora: obterHoraAtual() });
+  await salvarDia(hojeKey, registros);
+}
+
+async function atualizarRegistroExistente(chaveData, idRegistro, novoNome, novoValor, novoTipo) {
+  const registros = await obterDia(chaveData);
+  const index = registros.findIndex((r) => r.id === idRegistro);
+  if (index !== -1) {
+    registros[index].nome = novoNome;
+    registros[index].valor = novoValor;
+    registros[index].tipo = novoTipo;
+    await salvarDia(chaveData, registros);
+  }
+}
+
+async function removerRegistro(chaveData, idRegistro) {
+  let registros = await obterDia(chaveData);
+  registros = registros.filter((r) => r.id !== idRegistro);
+  await salvarDia(chaveData, registros);
 }
 
 // =========================================================
-// RENDERIZAÇÃO: RESUMO DO DIA ATUAL
+// RENDERIZAÇÃO E ATUALIZAÇÕES DE TELA
 // =========================================================
 
-function atualizarResumoHoje() {
-  const dados = carregarDados();
-  const registrosHoje = dados[hojeKey]?.registros || [];
+async function atualizarTelas(chaveDataAlterada) {
+  await atualizarResumoHoje();
+  await renderizarListaHoje();
+  await renderizarCalendario();
 
+  if (!detalheDiaEl.classList.contains("hidden") && detalheDiaEl.dataset.chaveAtual === chaveDataAlterada) {
+    const registros = await obterDia(chaveDataAlterada);
+    if (registros.length > 0) {
+      abrirDetalheDia(chaveDataAlterada, registros);
+    } else {
+      fecharDetalheDia();
+    }
+  }
+}
+
+async function atualizarResumoHoje() {
+  const registrosHoje = await obterDia(hojeKey);
   const { totalContas, totalVendas, totalGeral } = calcularTotais(registrosHoje);
 
   totalContasEl.textContent = formatarMoeda(totalContas);
@@ -218,14 +209,8 @@ function atualizarResumoHoje() {
   totalGeralEl.textContent = formatarMoeda(totalGeral);
 }
 
-// =========================================================
-// RENDERIZAÇÃO: LISTA DE LANÇAMENTOS DE HOJE
-// =========================================================
-
-function renderizarListaHoje() {
-  const dados = carregarDados();
-  const registrosHoje = dados[hojeKey]?.registros || [];
-
+async function renderizarListaHoje() {
+  const registrosHoje = await obterDia(hojeKey);
   listaHojeEl.innerHTML = "";
 
   if (registrosHoje.length === 0) {
@@ -233,26 +218,17 @@ function renderizarListaHoje() {
     return;
   }
 
-  // Mostra os mais recentes primeiro
   const registrosOrdenados = [...registrosHoje].reverse();
-
   registrosOrdenados.forEach((registro) => {
     const li = criarItemLista(registro, hojeKey, true);
     listaHojeEl.appendChild(li);
   });
 }
 
-/**
- * Cria o elemento <li> de um registro de PIX.
- * @param {object} registro - dados do PIX
- * @param {string} chaveData - data a que pertence (para exclusão)
- * @param {boolean} permitirExcluir - se deve mostrar botão de excluir
- */
-function criarItemLista(registro, chaveData, permitirExcluir) {
+function criarItemLista(registro, chaveData, permitirAcoes) {
   const li = document.createElement("li");
-
   const tipoLabel = registro.tipo === "conta" ? "Conta" : "Venda";
-  const tipoClasse = registro.tipo; // "conta" ou "venda"
+  const tipoClasse = registro.tipo; 
 
   li.innerHTML = `
     <div class="item-info">
@@ -262,89 +238,118 @@ function criarItemLista(registro, chaveData, permitirExcluir) {
     <div class="item-direita">
       <span class="tag-tipo ${tipoClasse}">${tipoLabel}</span>
       <span class="item-valor ${tipoClasse}">${formatarMoeda(registro.valor)}</span>
-      ${permitirExcluir ? `<button class="btn-excluir" title="Excluir lançamento" data-id="${registro.id}" data-data="${chaveData}">🗑️</button>` : ""}
+      ${permitirAcoes ? `
+        <button class="btn-editar" title="Editar lançamento" data-id="${registro.id}" data-data="${chaveData}">✏️</button>
+        <button class="btn-excluir" title="Excluir lançamento" data-id="${registro.id}" data-data="${chaveData}">🗑️</button>
+      ` : ""}
     </div>
   `;
 
-  // Listener do botão de excluir (apenas se exibido)
-  if (permitirExcluir) {
+  if (permitirAcoes) {
     const btnExcluir = li.querySelector(".btn-excluir");
-    btnExcluir.addEventListener("click", () => {
-      const confirmar = confirm(
-        `Excluir o lançamento de "${registro.nome}" (${formatarMoeda(registro.valor)})?`
-      );
+    btnExcluir.addEventListener("click", async () => {
+      const confirmar = confirm(`Excluir o lançamento de "${registro.nome}"?`);
       if (!confirmar) return;
-
-      removerRegistro(chaveData, registro.id);
-
-      // Atualiza tudo após exclusão
-      atualizarResumoHoje();
-      renderizarListaHoje();
-      renderizarListaDias();
-
-      // Se o detalhe do dia estiver aberto e for o mesmo dia, atualiza também
-      if (!detalheDiaEl.classList.contains("hidden") && detalheDiaEl.dataset.chaveAtual === chaveData) {
-        abrirDetalheDia(chaveData);
-      }
+      
+      // UX: Altera opacidade enquanto apaga no banco
+      li.style.opacity = "0.5"; 
+      await removerRegistro(chaveData, registro.id);
+      await atualizarTelas(chaveData);
     });
+
+    const btnEditar = li.querySelector(".btn-editar");
+    btnEditar.addEventListener("click", () => iniciarEdicao(registro, chaveData));
   }
 
   return li;
 }
 
-/**
- * Escapa caracteres HTML para evitar problemas de injeção
- * ao inserir o nome do cliente no innerHTML.
- */
-function escapeHTML(texto) {
-  const div = document.createElement("div");
-  div.textContent = texto;
-  return div.innerHTML;
+// =========================================================
+// EDIÇÃO E SELEÇÃO DE TIPO
+// =========================================================
+
+function iniciarEdicao(registro, chaveData) {
+  nomeClienteInput.value = registro.nome;
+  valorPixInput.value = registro.valor;
+  selecionarTipo(registro.tipo);
+
+  idEmEdicao = registro.id;
+  dataEmEdicao = chaveData;
+
+  btnSubmit.innerHTML = "🔄 Atualizar PIX";
+  btnSubmit.style.backgroundColor = "var(--color-conta)"; 
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  nomeClienteInput.focus();
+}
+
+function cancelarEdicao() {
+  idEmEdicao = null;
+  dataEmEdicao = null;
+  btnSubmit.innerHTML = "✅ Registrar PIX";
+  btnSubmit.style.backgroundColor = ""; 
+  formPix.reset();
+}
+
+function selecionarTipo(tipo) {
+  tipoSelecionado = tipo;
+  btnTipoConta.classList.toggle("ativo", tipo === "conta");
+  btnTipoVenda.classList.toggle("ativo", tipo === "venda");
 }
 
 // =========================================================
-// RENDERIZAÇÃO: HISTÓRICO DE DIAS ANTERIORES
+// RENDERIZAÇÃO DO HISTÓRICO (CALENDÁRIO)
 // =========================================================
 
-function renderizarListaDias() {
-  const dados = carregarDados();
-
-  // Pega todas as chaves de data, exceto a de hoje, ordenadas da mais recente para a mais antiga
-  const chaves = Object.keys(dados)
-    .filter((chave) => chave !== hojeKey && dados[chave].registros.length > 0)
-    .sort((a, b) => (a < b ? 1 : -1));
-
-  listaDiasEl.innerHTML = "";
-
-  if (chaves.length === 0) {
-    listaDiasEl.innerHTML = `<p class="lista-vazia">Nenhum histórico salvo ainda.</p>`;
-    return;
+async function renderizarCalendario() {
+  const ano = dataCalendario.getFullYear();
+  const mes = dataCalendario.getMonth();
+  
+  const nomeMes = dataCalendario.toLocaleDateString('pt-BR', { month: 'long' });
+  mesAnoAtualEl.textContent = `${nomeMes} ${ano}`;
+  
+  calendarioGridEl.innerHTML = "";
+  
+  const primeiroDiaDoMes = new Date(ano, mes, 1).getDay(); 
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  
+  // Busca todos os dados da nuvem de uma vez para mapear o calendário
+  const dados = await carregarTodosOsDados();
+  
+  for (let i = 0; i < primeiroDiaDoMes; i++) {
+    const divVazia = document.createElement("div");
+    divVazia.className = "dia-calendario vazio";
+    calendarioGridEl.appendChild(divVazia);
   }
-
-  chaves.forEach((chave) => {
-    const registros = dados[chave].registros;
-    const { totalGeral } = calcularTotais(registros);
-
-    const item = document.createElement("div");
-    item.className = "dia-item";
-    item.innerHTML = `
-      <span class="dia-data">${formatarDataExtenso(chave)}</span>
-      <span class="dia-total">${formatarMoeda(totalGeral)}</span>
-    `;
-
-    item.addEventListener("click", () => abrirDetalheDia(chave));
-
-    listaDiasEl.appendChild(item);
-  });
+  
+  for (let dia = 1; dia <= diasNoMes; dia++) {
+    const div = document.createElement("div");
+    div.className = "dia-calendario";
+    div.textContent = dia;
+    
+    const mesFormatado = String(mes + 1).padStart(2, "0");
+    const diaFormatado = String(dia).padStart(2, "0");
+    const chaveData = `${ano}-${mesFormatado}-${diaFormatado}`;
+    
+    if (chaveData === hojeKey) div.classList.add("hoje");
+    
+    if (dados[chaveData] && dados[chaveData].registros.length > 0) {
+      div.classList.add("tem-dados");
+      div.addEventListener("click", () => abrirDetalheDia(chaveData, dados[chaveData].registros));
+    } else {
+      div.style.color = "var(--text-muted)";
+    }
+    
+    calendarioGridEl.appendChild(div);
+  }
 }
 
-/**
- * Abre o painel de detalhes de um dia específico do histórico,
- * exibindo a lista completa e os totais daquele dia.
- */
-function abrirDetalheDia(chaveData) {
-  const dados = carregarDados();
-  const registros = dados[chaveData]?.registros || [];
+async function mudarMes(delta) {
+  dataCalendario.setMonth(dataCalendario.getMonth() + delta);
+  await renderizarCalendario();
+  fecharDetalheDia(); 
+}
+
+function abrirDetalheDia(chaveData, registros) {
   const { totalContas, totalVendas, totalGeral } = calcularTotais(registros);
 
   detalheDiaEl.dataset.chaveAtual = chaveData;
@@ -356,20 +361,13 @@ function abrirDetalheDia(chaveData) {
 
   detalheListaEl.innerHTML = "";
 
-  if (registros.length === 0) {
-    detalheListaEl.innerHTML = `<li class="lista-vazia">Nenhum lançamento neste dia.</li>`;
-  } else {
-    // Mostra os mais recentes primeiro
-    const registrosOrdenados = [...registros].reverse();
-    registrosOrdenados.forEach((registro) => {
-      const li = criarItemLista(registro, chaveData, true);
-      detalheListaEl.appendChild(li);
-    });
-  }
+  const registrosOrdenados = [...registros].reverse();
+  registrosOrdenados.forEach((registro) => {
+    const li = criarItemLista(registro, chaveData, true); 
+    detalheListaEl.appendChild(li);
+  });
 
   detalheDiaEl.classList.remove("hidden");
-
-  // Rola a tela suavemente até o detalhe aparecer
   detalheDiaEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
@@ -379,119 +377,161 @@ function fecharDetalheDia() {
 }
 
 // =========================================================
-// SELEÇÃO DO TIPO DE PIX (Conta / Venda)
+// SUBMISSÃO DO FORMULÁRIO (AGORA ASSÍNCRONO)
 // =========================================================
 
-function selecionarTipo(tipo) {
-  tipoSelecionado = tipo;
-
-  btnTipoConta.classList.toggle("ativo", tipo === "conta");
-  btnTipoVenda.classList.toggle("ativo", tipo === "venda");
-}
-
-// =========================================================
-// SUBMISSÃO DO FORMULÁRIO
-// =========================================================
-
-function tratarSubmitFormulario(evento) {
+async function tratarSubmitFormulario(evento) {
   evento.preventDefault();
 
   const nome = nomeClienteInput.value.trim();
-  const valorTexto = valorPixInput.value;
-  const valor = parseFloat(valorTexto);
+  const valor = parseFloat(valorPixInput.value);
 
-  // Validações básicas
-  if (!nome) {
-    alert("Por favor, informe o nome do cliente.");
+  if (!nome || isNaN(valor) || valor <= 0) {
+    alert("Por favor, preencha os dados corretamente.");
+    return;
+  }
+
+  // Trava o botão para evitar cliques duplicados (Network Latency)
+  const textoBotaoOriginal = btnSubmit.innerHTML;
+  btnSubmit.innerHTML = "⏳ Salvando...";
+  btnSubmit.disabled = true;
+
+  try {
+    if (idEmEdicao) {
+      await atualizarRegistroExistente(dataEmEdicao, idEmEdicao, nome, valor, tipoSelecionado);
+      cancelarEdicao();
+    } else {
+      await adicionarRegistro(nome, valor, tipoSelecionado);
+      formPix.reset();
+    }
+    await atualizarTelas(dataEmEdicao || hojeKey);
     nomeClienteInput.focus();
-    return;
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao salvar no banco de dados. Tente novamente.");
+  } finally {
+    // Destrava o botão
+    if(!idEmEdicao) btnSubmit.innerHTML = "✅ Registrar PIX";
+    btnSubmit.disabled = false;
   }
-
-  if (isNaN(valor) || valor <= 0) {
-    alert("Por favor, informe um valor válido maior que zero.");
-    valorPixInput.focus();
-    return;
-  }
-
-  // Salva o registro
-  adicionarRegistro(nome, valor, tipoSelecionado);
-
-  // Atualiza a interface
-  atualizarResumoHoje();
-  renderizarListaHoje();
-
-  // Limpa o formulário e devolve o foco para o nome (agiliza próximo lançamento)
-  formPix.reset();
-  nomeClienteInput.focus();
 }
 
 // =========================================================
-// TEMA (DARK / LIGHT MODE)
+// MIGRAÇÃO E INICIALIZAÇÃO
 // =========================================================
 
-/**
- * Aplica o tema salvo no LocalStorage (ou light por padrão)
- */
+async function migrarDadosAntigos() {
+  if (localStorage.getItem("migracao_firebase_concluida") === "true") return;
+
+  const dadosLocais = JSON.parse(localStorage.getItem('pixData'));
+  if (!dadosLocais || Object.keys(dadosLocais).length === 0) {
+    console.log("Nenhum dado local para migrar.");
+    localStorage.setItem("migracao_firebase_concluida", "true");
+    return;
+  }
+
+  console.log("⏳ Iniciando migração para a nuvem...");
+  try {
+    for (const [chaveData, conteudo] of Object.entries(dadosLocais)) {
+      await setDoc(doc(db, COLECAO, chaveData), conteudo);
+    }
+    console.log("✅ Migração concluída com sucesso!");
+    localStorage.setItem("migracao_firebase_concluida", "true");
+  } catch (erro) {
+    console.error("❌ Erro na migração:", erro);
+  }
+}
+
 function aplicarTemaSalvo() {
   const temaSalvo = localStorage.getItem(STORAGE_KEY_TEMA);
-
-  if (temaSalvo === "dark") {
-    document.body.classList.add("dark");
-    themeToggleBtn.textContent = "☀️";
-  } else {
-    document.body.classList.remove("dark");
-    themeToggleBtn.textContent = "🌙";
-  }
-}
-
-/**
- * Alterna entre dark e light mode e salva a preferência.
- */
-function alternarTema() {
-  const ativarDark = !document.body.classList.contains("dark");
-
+  const ativarDark = temaSalvo === "dark";
   document.body.classList.toggle("dark", ativarDark);
   themeToggleBtn.textContent = ativarDark ? "☀️" : "🌙";
+}
 
+function alternarTema() {
+  const ativarDark = !document.body.classList.contains("dark");
+  document.body.classList.toggle("dark", ativarDark);
+  themeToggleBtn.textContent = ativarDark ? "☀️" : "🌙";
   localStorage.setItem(STORAGE_KEY_TEMA, ativarDark ? "dark" : "light");
 }
 
-// =========================================================
-// EXIBIÇÃO DA DATA ATUAL NO CABEÇALHO
-// =========================================================
+async function init() {
+  await migrarDadosAntigos(); // Gatilho principal
 
-function exibirDataAtual() {
-  dataAtualEl.textContent = formatarDataExtenso(hojeKey);
-}
-
-// =========================================================
-// INICIALIZAÇÃO DA APLICAÇÃO
-// =========================================================
-
-function init() {
-  // Tema
   aplicarTemaSalvo();
   themeToggleBtn.addEventListener("click", alternarTema);
+  dataAtualEl.textContent = formatarDataExtenso(hojeKey);
 
-  // Data no cabeçalho
-  exibirDataAtual();
-
-  // Seletor de tipo (Conta / Venda)
   btnTipoConta.addEventListener("click", () => selecionarTipo("conta"));
   btnTipoVenda.addEventListener("click", () => selecionarTipo("venda"));
-  selecionarTipo("conta"); // estado inicial
+  selecionarTipo("conta"); 
 
-  // Formulário
+  const btnImprimir = document.getElementById("btnImprimirHoje");
+  if(btnImprimir) btnImprimir.addEventListener("click", imprimirRelatorioDia);
+
   formPix.addEventListener("submit", tratarSubmitFormulario);
-
-  // Fechar detalhe do histórico
   fecharDetalheBtn.addEventListener("click", fecharDetalheDia);
+  btnMesAnterior.addEventListener("click", () => mudarMes(-1));
+  btnMesProximo.addEventListener("click", () => mudarMes(1));
 
-  // Renderizações iniciais
-  atualizarResumoHoje();
-  renderizarListaHoje();
-  renderizarListaDias();
+  // Inicializa as telas (agora via Firebase)
+  await atualizarResumoHoje();
+  await renderizarListaHoje();
+  await renderizarCalendario();
 }
 
-// Inicia a aplicação quando o DOM estiver pronto
 document.addEventListener("DOMContentLoaded", init);
+
+// =========================================================
+// IMPRESSÃO DE RELATÓRIO (AGORA ASSÍNCRONO)
+// =========================================================
+
+async function imprimirRelatorioDia() {
+  const registros = await obterDia(hojeKey);
+
+  if (registros.length === 0) {
+    alert("Não há registros de PIX para imprimir hoje.");
+    return;
+  }
+
+  const { totalContas, totalVendas, totalGeral } = calcularTotais(registros);
+  const areaImpressao = document.getElementById("areaImpressao");
+
+  let html = `
+    <div class="cupom-header">
+      <div class="cupom-titulo">BAZAR ANA PAULA</div>
+      <div>Tradição desde 1988</div>
+      <div class="cupom-divisor"></div>
+      <div>RELATÓRIO PIX DO CAIXA</div>
+      <div>Data: ${formatarDataExtenso(hojeKey)}</div>
+    </div>
+    <div class="cupom-divisor"></div>
+  `;
+
+  registros.forEach(r => {
+    const sigla = r.tipo === 'conta' ? '(C)' : '(V)';
+    html += `
+      <div class="cupom-linha">
+        <span>${escapeHTML(r.nome)} ${sigla}</span>
+        <span>${formatarMoeda(r.valor)}</span>
+      </div>
+    `;
+  });
+
+  html += `
+    <div class="cupom-divisor"></div>
+    <div class="cupom-linha"><span>Total de Vendas:</span><span>${formatarMoeda(totalVendas)}</span></div>
+    <div class="cupom-linha"><span>Total de Contas:</span><span>${formatarMoeda(totalContas)}</span></div>
+    <div class="cupom-divisor"></div>
+    <div class="cupom-linha" style="font-weight: bold; font-size: 16px;">
+      <span>TOTAL GERAL:</span><span>${formatarMoeda(totalGeral)}</span>
+    </div>
+    <div class="cupom-divisor"></div>
+    <div style="text-align: center; margin-top: 15px;">Fechamento de Caixa</div>
+    <div style="text-align: center; font-size: 12px; margin-top: 5px;">---</div>
+  `;
+
+  areaImpressao.innerHTML = html;
+  window.print();
+}

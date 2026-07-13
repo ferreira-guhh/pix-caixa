@@ -33,6 +33,9 @@
         <span class="label">Total Geral</span>
         <span class="valor" id="totalGeral">R$ 0,00</span>
       </div>
+      <button id="btnImprimirHoje" class="btn-secundario" style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 10px; background-color: transparent; border: 2px solid var(--border-color); color: var(--text-color); font-weight: bold; cursor: pointer;">
+      🖨️ Imprimir Relatório de Hoje
+    </button>
     </section>
 
     <!-- ===== FORMULÁRIO DE LANÇAMENTO ===== -->
@@ -90,9 +93,19 @@
 
     <!-- ===== HISTÓRICO DE DIAS ANTERIORES ===== -->
     <section class="historico-card">
-      <h2>📅 Histórico de Dias</h2>
-      <div id="listaDias" class="lista-dias">
-        <p class="lista-vazia">Nenhum histórico salvo ainda.</p>
+      <h2>📅 Histórico Mensal</h2>
+      
+      <div class="calendario-container">
+        <div class="calendario-header">
+          <button id="btnMesAnterior" class="btn-icon" title="Mês Anterior">‹</button>
+          <h3 id="mesAnoAtual">--</h3>
+          <button id="btnMesProximo" class="btn-icon" title="Próximo Mês">›</button>
+        </div>
+        <div class="calendario-dias-semana">
+          <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+        </div>
+        <div id="calendarioGrid" class="calendario-grid">
+          </div>
       </div>
 
       <!-- Detalhes do dia selecionado -->
@@ -126,7 +139,7 @@
     </footer>
 
   </div>
-
-  <script src="script.js"></script>
+<div id="areaImpressao" class="area-impressao"></div>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

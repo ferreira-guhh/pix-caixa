@@ -438,6 +438,88 @@ body {
 }
 
 /* =====================================================
+   CALENDÁRIO MENSAL
+   ===================================================== */
+.calendario-container {
+  margin-bottom: 16px;
+}
+
+.calendario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.calendario-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.calendario-dias-semana {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.dia-calendario {
+  aspect-ratio: 1; /* Mantém o quadradinho perfeito */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.dia-calendario:hover {
+  border-color: var(--primary-color);
+  background-color: var(--bg-color);
+}
+
+.dia-calendario.vazio {
+  pointer-events: none;
+}
+
+.dia-calendario.tem-dados {
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+}
+
+/* O pontinho indicando que tem registro no dia */
+.dia-calendario.tem-dados::after {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  background-color: var(--color-conta); 
+  border-radius: 50%;
+  position: absolute;
+  bottom: 4px;
+}
+
+.dia-calendario.hoje {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+/* =====================================================
    RODAPÉ
    ===================================================== */
 .app-footer {
@@ -463,5 +545,80 @@ body {
     flex-direction: row;
     justify-content: space-between;
     text-align: left;
+  }
+}
+
+.btn-editar {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.btn-editar:hover {
+  color: var(--color-conta);
+}
+
+/* =====================================================
+   ESTILOS DE IMPRESSÃO (ELGIN i9 - Bobina 80mm)
+   ===================================================== */
+.area-impressao {
+  display: none;
+}
+
+@media print {
+  /* 1. Arranca o cabeçalho/rodapé do navegador e solta o limite da folha */
+  @page {
+    margin: 0; 
+  }
+
+  /* 2. Zera as alturas para o papel acompanhar o tamanho do texto */
+  html, body {
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #fff;
+  }
+
+  .container {
+    display: none !important;
+  }
+  
+  .area-impressao {
+    display: block !important;
+    width: 78mm; /* Um pouco menos de 80mm para dar uma margem de segurança */
+    padding: 4mm; /* Dá um respiro pra guilhotina não cortar o começo */
+    margin: 0;
+    
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 15px; /* Letra um pouco maior */
+    color: #000 !important; /* Força o preto puro (térmica não lê cinza) */
+    font-weight: 900 !important; /* Força o negrito máximo */
+  }
+
+  .cupom-header {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .cupom-titulo {
+    font-weight: 900;
+    font-size: 18px;
+  }
+
+  .cupom-linha {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-weight: 900 !important; /* Garante os itens em negrito */
+  }
+
+  .cupom-divisor {
+    border-top: 2px dashed #000; /* Linha tracejada mais grossa e preta */
+    margin: 8px 0;
   }
 }
